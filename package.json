@@ -1,0 +1,98 @@
+{
+    "name": "ultimate-twig",
+    "displayName": "Ultimate Twig",
+    "description": "Complete Twig 3.x formatter, syntax highlighter, and IntelliSense with context-aware autocompletion for Twig, HTML, CSS, and JavaScript",
+    "version": "1.0.0",
+    "author": "Gary Aranda Dickens",
+    "publisher": "TGO Systems (Tuetego Ltd)",
+    "engines": {
+        "vscode": "^1.61.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Formatters",
+        "Snippets"
+    ],
+    "keywords": [
+        "twig",
+        "formatter",
+        "symfony",
+        "template",
+        "twig3",
+        "php"
+    ],
+    "activationEvents": [
+        "onLanguage:twig"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "twig",
+                "aliases": [
+                    "Twig",
+                    "twig"
+                ],
+                "extensions": [
+                    ".twig",
+                    ".html.twig",
+                    ".twig.html"
+                ],
+                "configuration": "./language-configuration.json",
+                "mimetypes": [
+                    "text.html"
+                ]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "twig",
+                "scopeName": "text.html.twig",
+                "path": "./syntaxes/twig.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Ultimate Twig",
+            "properties": {
+                "ultimateTwig.twig.completion.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable Twig-specific completions (tags, filters, functions)",
+                    "order": 1
+                },
+                "ultimateTwig.html.completion.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable HTML completions in Twig files",
+                    "order": 2
+                },
+                "ultimateTwig.javascript.completion.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable JavaScript completions in script tags",
+                    "order": 3
+                },
+                "ultimateTwig.css.completion.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/disable CSS completions in style attributes",
+                    "order": 4
+                }
+            }
+        }
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "test": "node test/runTest.js"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kissumisha/ultimate-twig"
+    },
+    "license": "MIT",
+    "icon": "images/icon.png"
+}

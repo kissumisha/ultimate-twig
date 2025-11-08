@@ -1,0 +1,343 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Twig",
+    "scopeName": "text.html.twig",
+    "patterns": [
+        {
+            "include": "#twig-comments"
+        },
+        {
+            "include": "#twig-statements"
+        },
+        {
+            "include": "#twig-expressions"
+        },
+        {
+            "include": "text.html.basic"
+        }
+    ],
+    "repository": {
+        "twig-comments": {
+            "patterns": [
+                {
+                    "name": "comment.block.twig",
+                    "begin": "\\{#-?",
+                    "end": "-?#\\}",
+                    "patterns": [
+                        {
+                            "match": "\\b(TODO|FIXME|XXX|NOTE)\\b",
+                            "name": "keyword.other.todo.twig"
+                        }
+                    ]
+                }
+            ]
+        },
+        "twig-statements": {
+            "patterns": [
+                {
+                    "name": "meta.tag.template.block.twig",
+                    "begin": "\\{%-?",
+                    "end": "-?%\\}",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.tag.begin.twig"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.tag.end.twig"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#twig-keywords"
+                        },
+                        {
+                            "include": "#twig-operators"
+                        },
+                        {
+                            "include": "#twig-filters"
+                        },
+                        {
+                            "include": "#twig-functions"
+                        },
+                        {
+                            "include": "#twig-constants"
+                        },
+                        {
+                            "include": "#twig-strings"
+                        },
+                        {
+                            "include": "#twig-numbers"
+                        },
+                        {
+                            "include": "#twig-variables"
+                        },
+                        {
+                            "include": "text.html.basic"
+                        }
+                    ]
+                }
+            ]
+        },
+        "twig-expressions": {
+            "patterns": [
+                {
+                    "name": "meta.tag.template.value.twig",
+                    "begin": "\\{\\{-?",
+                    "end": "-?\\}\\}",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.tag.begin.twig"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.tag.end.twig"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#twig-operators"
+                        },
+                        {
+                            "include": "#twig-filters"
+                        },
+                        {
+                            "include": "#twig-functions"
+                        },
+                        {
+                            "include": "#twig-constants"
+                        },
+                        {
+                            "include": "#twig-strings"
+                        },
+                        {
+                            "include": "#twig-numbers"
+                        },
+                        {
+                            "include": "#twig-variables"
+                        }
+                    ]
+                }
+            ]
+        },
+        "twig-keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.twig",
+                    "match": "\\b(if|else|elseif|endif|for|endfor|in|as|block|endblock|extends|embed|endembed|include|import|from|macro|endmacro|set|endset|filter|endfilter|autoescape|endautoescape|spaceless|endspaceless|do|flush|use|trans|endtrans|transchoice|endtranschoice|with|endwith|deprecated|apply|endapply|cache|endcache|sandbox|endsandbox|verbatim|endverbatim)\\b"
+                },
+                {
+                    "name": "keyword.operator.twig",
+                    "match": "\\b(is|not|and|or|b-and|b-or|b-xor)\\b"
+                }
+            ]
+        },
+        "twig-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.comparison.twig",
+                    "match": "==|!=|<|>|>=|<=|\\?\\?|\\?:|matches|starts with|ends with"
+                },
+                {
+                    "name": "keyword.operator.assignment.twig",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arithmetic.twig",
+                    "match": "\\+|-|\\*\\*|\\*|//|/|%|~"
+                },
+                {
+                    "name": "keyword.operator.logical.twig",
+                    "match": "\\b(not|and|or)\\b"
+                }
+            ]
+        },
+        "twig-filters": {
+            "patterns": [
+                {
+                    "name": "support.function.filter.twig",
+                    "match": "\\|\\s*(abs|batch|capitalize|column|convert_encoding|country_name|currency_name|currency_symbol|data_uri|date|date_modify|default|escape|e|filter|first|format|format_currency|format_date|format_datetime|format_number|format_time|inky_to_html|inline_css|join|json_encode|keys|language_name|last|length|locale_name|lower|map|markdown_to_html|merge|nl2br|number_format|raw|reduce|replace|reverse|round|slice|sort|spaceless|split|striptags|title|timezone_name|trim|u|upper|url_encode|slug)\\b"
+                }
+            ]
+        },
+        "twig-functions": {
+            "patterns": [
+                {
+                    "name": "support.function.twig",
+                    "match": "\\b(attribute|block|constant|country_timezones|cycle|date|dump|html_classes|include|max|min|parent|random|range|source|template_from_string)\\b(?=\\s*\\()"
+                }
+            ]
+        },
+        "twig-constants": {
+            "patterns": [
+                {
+                    "name": "constant.language.twig",
+                    "match": "\\b(true|false|null|none)\\b"
+                }
+            ]
+        },
+        "twig-strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.twig",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.twig",
+                            "match": "\\\\."
+                        },
+                        {
+                            "include": "#twig-string-interpolation"
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.twig",
+                    "begin": "'",
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.twig",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "twig-string-interpolation": {
+            "patterns": [
+                {
+                    "name": "meta.embedded.line.twig",
+                    "begin": "#\\{",
+                    "end": "\\}",
+                    "patterns": [
+                        {
+                            "include": "#twig-expressions"
+                        }
+                    ]
+                }
+            ]
+        },
+        "twig-numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.twig",
+                    "match": "\\b\\d+(\\.\\d+)?\\b"
+                }
+            ]
+        },
+        "twig-variables": {
+            "patterns": [
+                {
+                    "name": "variable.other.twig",
+                    "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        },
+        "html-tags": {
+            "patterns": [
+                {
+                    "name": "meta.tag.any.html",
+                    "begin": "(<)([a-zA-Z0-9:-]+)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.begin.html"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.html"
+                        }
+                    },
+                    "end": "(/>)|(>)",
+                    "endCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.end.html"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.tag.end.html"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#twig-comments"
+                        },
+                        {
+                            "include": "#twig-statements"
+                        },
+                        {
+                            "include": "#twig-expressions"
+                        },
+                        {
+                            "match": "\\s+([a-zA-Z0-9-:]+)",
+                            "captures": {
+                                "1": {
+                                    "name": "entity.other.attribute-name.html"
+                                }
+                            }
+                        },
+                        {
+                            "name": "string.quoted.double.html",
+                            "begin": "\"",
+                            "end": "\"",
+                            "patterns": [
+                                {
+                                    "name": "constant.character.escape.html",
+                                    "match": "\\\\."
+                                },
+                                {
+                                    "include": "#twig-comments"
+                                },
+                                {
+                                    "include": "#twig-statements"
+                                },
+                                {
+                                    "include": "#twig-expressions"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "string.quoted.single.html",
+                            "begin": "'",
+                            "end": "'",
+                            "patterns": [
+                                {
+                                    "name": "constant.character.escape.html",
+                                    "match": "\\\\."
+                                },
+                                {
+                                    "include": "#twig-comments"
+                                },
+                                {
+                                    "include": "#twig-statements"
+                                },
+                                {
+                                    "include": "#twig-expressions"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "meta.tag.any.html",
+                    "begin": "(</)([a-zA-Z0-9:-]+)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.begin.html"
+                        },
+                        "2": {
+                            "name": "entity.name.tag.html"
+                        }
+                    },
+                    "end": "(>)",
+                    "endCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.end.html"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
