@@ -111,7 +111,10 @@ class TwigFormatter {
             ////////////////////////
 
             // If already inside a multiline attribute value block
+            /*
             if (insideTwigAttribute) {
+                continue;
+
                 attributeLines.push(line);
                 const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
                 if (quoteCount % 2 === 0) {
@@ -125,10 +128,30 @@ class TwigFormatter {
                 }
                 continue;
             }
+            */
+
+            // If already inside a multiline attribute value block
+            // if (insideTwigAttribute) {
+            //     attributeLines.push(line);
+            //     const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
+            //     if (quoteCount % 2 === 0) {
+            //         // Attribute closed -- collapse into a single line with custom rules and indent correctly
+            //         let collapsed = this.collapseTwigAttribute(attributeLines);
+            //         let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
+            //         formattedLines.push(indent + collapsed);
+            //         insideTwigAttribute = false;
+            //         attributeLines = [];
+            //         attributeQuote = null;
+            //     }
+            //     continue;
+            // }
+
+
 
             // Detect attribute starting with an open quote and Twig
             const attrMatch = line.match(/<[\w\-]+[^>]*(class|style|[a-zA-Z\-]+)=([\'"])([^\'"]*({%|{{)[^\'"]*)$/);
             if (attrMatch) {
+
                 insideTwigAttribute = true;
                 attributeQuote = attrMatch[2];
                 attributeLines = [line];
