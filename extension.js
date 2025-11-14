@@ -52,9 +52,51 @@ class TwigFormatter {
         let scriptTagBaseIndent = 0; // Store HTML indent level when entering script tag
         let styleTagBaseIndent = 0;  // Store HTML indent level when entering style tag
 
+        let insideTwigAttribute = false;
+        let attributeQuote = null;
+        let attributeLines = [];
+
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             let trimmedLine = line.trim();
+
+            ////////////////////////
+            ////////////////////////
+
+            // If already inside a multiline attribute value block
+            if (insideTwigAttribute) {
+                attributeLines.push(line);
+                // Check if the attribute ends here
+                const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
+                if (quoteCount % 2 === 0) {
+                    // Attribute closed
+                    formattedLines.push(attributeLines.join('\n'));
+                    insideTwigAttribute = false;
+                    attributeLines = [];
+                    attributeQuote = null;
+                }
+                continue;
+            }
+
+            // Detect attribute starting with an open quote and Twig
+            const attrMatch = line.match(/<[\w\-]+[^>]*(class|style|[a-zA-Z\-]+)=([\'"])([^\'"]*({%|{{)[^\'"]*)$/);
+            if (attrMatch) {
+                // Begin verbatim block for attribute with Twig
+                insideTwigAttribute = true;
+                attributeQuote = attrMatch[2]; // ' or "
+                attributeLines = [line];
+                continue;
+            }
+
+            // Detect single-line attribute with Twig and push directly
+            if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
+                formattedLines.push(line);
+                continue;
+            }
+
+            ////////////////////////
+            ////////////////////////
+
 
             // Skip empty lines if preserveNewLines is true
             if (trimmedLine === '' && this.preserveNewLines) {
@@ -206,7 +248,7 @@ class TwigFormatter {
                 if (this.isOpeningTag(item) && !this.isSelfClosingTag(item) && !this.isSingleLineBlock(item)) {
                     twigIndentLevel++;
                 }
-            
+
                 // Special handling for else/elseif - they decrease then increase indent
                 if (this.isMidBlockTag(item)) {
                     // This is correct: decrease then increase for mid blocks
@@ -675,7 +717,7 @@ function activate(context) {
 /**
  * Deactivate the extension
  */
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
     activate,
