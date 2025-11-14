@@ -12,13 +12,35 @@ class TwigFormatter {
     }
 
     /**
+     * Split a line into Twig splitLines and other content
+     */
+    splitTwigLine(line) {
+        // This splits a line into splitLines of '{% ... %}' or '{{ ... }}', leaving content as is
+        const re = /(\{\%.*?\%\}|\{\{.*?\}\})/g;
+        let result = [];
+        let lastIndex = 0;
+        let match;
+        while ((match = re.exec(line)) !== null) {
+            if (match.index > lastIndex) {
+                result.push(line.slice(lastIndex, match.index));
+            }
+            result.push(match[0]);
+            lastIndex = re.lastIndex;
+        }
+        if (lastIndex < line.length) {
+            result.push(line.slice(lastIndex));
+        }
+        return result.filter(s => s.trim().length > 0);
+    }
+
+    /**
      * Format Twig document
      * @param {string} text - The text to format
      * @returns {string} - Formatted text
      */
     format(text) {
         const indentChar = this.useTabs ? '\t' : ' '.repeat(this.indentSize);
-        
+
         let lines = text.split('\n');
         let formattedLines = [];
         let twigIndentLevel = 0;
@@ -29,26 +51,26 @@ class TwigFormatter {
         let inStyleTag = false;
         let scriptTagBaseIndent = 0; // Store HTML indent level when entering script tag
         let styleTagBaseIndent = 0;  // Store HTML indent level when entering style tag
-        
+
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             let trimmedLine = line.trim();
-            
+
             // Skip empty lines if preserveNewLines is true
             if (trimmedLine === '' && this.preserveNewLines) {
                 formattedLines.push('');
                 continue;
             }
-            
+
             if (trimmedLine === '' && !this.preserveNewLines) {
                 continue;
             }
-            
+
             // Handle multi-line comments
             if (trimmedLine.includes('{#')) {
                 inComment = true;
             }
-            
+
             if (inComment) {
                 formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
                 if (trimmedLine.includes('#}')) {
@@ -56,12 +78,12 @@ class TwigFormatter {
                 }
                 continue;
             }
-            
+
             // Handle verbatim blocks (no formatting inside)
             if (trimmedLine.match(/\{%\s*verbatim\s*%\}/)) {
                 inVerbatim = true;
             }
-            
+
             if (inVerbatim) {
                 formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
                 if (trimmedLine.match(/\{%\s*endverbatim\s*%\}/)) {
@@ -75,121 +97,123 @@ class TwigFormatter {
             const isScriptClosing = trimmedLine.match(/<\/script>/i);
             const isStyleOpening = trimmedLine.match(/<style[^>]*>/i) && !trimmedLine.match(/<\/style>/i);
             const isStyleClosing = trimmedLine.match(/<\/style>/i);
-            
+
             // Handle opening script/style tags
             if (isScriptOpening) {
                 // Process the opening tag line first
                 const totalIndent = twigIndentLevel + htmlIndentLevel;
                 let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
                 formattedLines.push(formattedLine);
-                
+
                 inScriptTag = true;
                 scriptTagBaseIndent = htmlIndentLevel; // Store current HTML indent level
                 htmlIndentLevel++; // Increase indent for content inside script tag
                 continue;
             }
-            
+
             if (isStyleOpening) {
                 // Process the opening tag line first
                 const totalIndent = twigIndentLevel + htmlIndentLevel;
                 let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
                 formattedLines.push(formattedLine);
-                
+
                 inStyleTag = true;
                 styleTagBaseIndent = htmlIndentLevel; // Store current HTML indent level
                 htmlIndentLevel++; // Increase indent for content inside style tag
                 continue;
             }
-            
+
             // Handle closing script/style tags
             if (isScriptClosing) {
                 htmlIndentLevel = scriptTagBaseIndent; // Restore HTML indent level from before script tag
                 inScriptTag = false;
-                
+
                 // Format the closing tag and skip normal HTML tag processing
                 const totalIndent = twigIndentLevel + htmlIndentLevel;
                 let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
                 formattedLines.push(formattedLine);
                 continue;
             }
-            
+
             if (isStyleClosing) {
                 htmlIndentLevel = styleTagBaseIndent; // Restore HTML indent level from before style tag
                 inStyleTag = false;
-                
+
                 // Format the closing tag and skip normal HTML tag processing
                 const totalIndent = twigIndentLevel + htmlIndentLevel;
                 let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
                 formattedLines.push(formattedLine);
                 continue;
             }
-            
+
             // Handle JavaScript/CSS indentation inside script/style tags
             if (inScriptTag || inStyleTag) {
                 const trimmed = trimmedLine;
-                
+
                 // Count opening and closing braces/brackets on this line
                 const openBraces = (trimmed.match(/\{/g) || []).length;
                 const closeBraces = (trimmed.match(/\}/g) || []).length;
                 const openBrackets = (trimmed.match(/\[/g) || []).length;
                 const closeBrackets = (trimmed.match(/\]/g) || []).length;
-                
+
                 // Calculate net change
                 const netChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
-                
+
                 // For lines with net decrease, decrease indent before rendering
                 if (netChange < 0) {
                     htmlIndentLevel = Math.max(0, htmlIndentLevel + netChange);
                 }
-                
+
                 const totalIndent = twigIndentLevel + htmlIndentLevel;
                 let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
                 formattedLines.push(formattedLine);
-                
+
                 // For lines with net increase, increase indent after rendering
                 if (netChange > 0) {
                     htmlIndentLevel += netChange;
                 }
-                
+
                 continue;
             }
-            
-            // Check for closing Twig tags that should decrease indent
-            if (this.isClosingTag(trimmedLine)) {
-                twigIndentLevel = Math.max(0, twigIndentLevel - 1);
-            }
 
-            // Check if this line is a complete HTML tag (opening and closing on same line)
-            const isCompleteTag = this.isHtmlOpeningTag(trimmedLine) && this.isHtmlClosingTag(trimmedLine);
+            // Now split the line on Twig tags
+            let splitLines = this.splitTwigLine(line);
 
-            // Check for closing HTML tags that should decrease indent
-            if (this.shouldDecreaseHtmlIndent(trimmedLine, isCompleteTag)) {
-                htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
-            }
-            
-            // Calculate total indent level
-            const totalIndent = twigIndentLevel + htmlIndentLevel;
-            let formattedLine = indentChar.repeat(totalIndent) + trimmedLine;
-            
-            formattedLines.push(formattedLine);
-            
-            // Check for opening Twig tags that should increase indent
-            if (this.isOpeningTag(trimmedLine) && !this.isSelfClosingTag(trimmedLine) && !this.isSingleLineBlock(trimmedLine)) {
-                twigIndentLevel++;
-            }
-            
-            // Special handling for else/elseif - they decrease then increase indent
-            if (this.isMidBlockTag(trimmedLine)) {
-                twigIndentLevel++;
-            }
+            for (let t = 0; t < splitLines.length; t++) {
+                let token = splitLines[t].trim();
+                // HTML tag detection has to remain per-token
+                const isCompleteTag = this.isHtmlOpeningTag(token) && this.isHtmlClosingTag(token);
+                if (this.shouldDecreaseHtmlIndent(token, isCompleteTag)) {
+                    htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
+                }
 
+                // Detect Twig closing tags
+                if (this.isClosingTag(token)) {
+                    twigIndentLevel = Math.max(0, twigIndentLevel - 1);
+                }
+
+                // Output line at current indent
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + token);
+
+                // Increase indent after opening Twig tags (but not for single-line sets or blocks)
+                if (this.isOpeningTag(token) && !this.isSelfClosingTag(token) && !this.isSingleLineBlock(token)) {
+                    twigIndentLevel++;
+                }
             
-            // Check for opening HTML tags that should increase indent
-            if (this.shouldIncreaseHtmlIndent(trimmedLine, isCompleteTag)) {
-                htmlIndentLevel++;
+                // Special handling for else/elseif - they decrease then increase indent
+                if (this.isMidBlockTag(token)) {
+                    // This is correct: decrease then increase for mid blocks
+                    twigIndentLevel++;
+                }
+
+
+                // Check for opening HTML tags that should increase indent
+                if (this.shouldIncreaseHtmlIndent(token, isCompleteTag)) {
+                    htmlIndentLevel++;
+                }
             }
         }
-        
+
         return formattedLines.join('\n');
     }
 
@@ -282,19 +306,19 @@ class TwigFormatter {
      * Check if HTML indent should be decreased for this line
      */
     shouldDecreaseHtmlIndent(line, isCompleteTag) {
-        return !isCompleteTag && 
-               this.isHtmlClosingTag(line) && 
-               !this.isHtmlSelfClosingTag(line);
+        return !isCompleteTag &&
+            this.isHtmlClosingTag(line) &&
+            !this.isHtmlSelfClosingTag(line);
     }
 
     /**
      * Check if HTML indent should be increased for this line
      */
     shouldIncreaseHtmlIndent(line, isCompleteTag) {
-        return !isCompleteTag && 
-               this.isHtmlOpeningTag(line) && 
-               !this.isHtmlSelfClosingTag(line) && 
-               !this.isHtmlClosingTag(line);
+        return !isCompleteTag &&
+            this.isHtmlOpeningTag(line) &&
+            !this.isHtmlSelfClosingTag(line) &&
+            !this.isHtmlClosingTag(line);
     }
 
     /**
@@ -303,30 +327,30 @@ class TwigFormatter {
      */
     isJsClosingLine(line) {
         const trimmed = line.trim();
-        
+
         // Count opening and closing braces/brackets on this line
         const openBraces = (trimmed.match(/\{/g) || []).length;
         const closeBraces = (trimmed.match(/\}/g) || []).length;
         const openBrackets = (trimmed.match(/\[/g) || []).length;
         const closeBrackets = (trimmed.match(/\]/g) || []).length;
-        
+
         // Net decrease: more closing than opening
         const netChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
-        
+
         if (netChange < 0) {
             return true;
         }
-        
+
         // Lines that start with closing brace (with possible trailing characters like );, ;, etc.)
         if (/^[}\]]/.test(trimmed)) {
             return true;
         }
-        
+
         // Lines with } else or } else if
         if (/^\s*}\s*else/.test(line)) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -336,20 +360,20 @@ class TwigFormatter {
      */
     isJsOpeningLine(line) {
         const trimmed = line.trim();
-        
+
         // Count opening and closing braces/brackets on this line
         const openBraces = (trimmed.match(/\{/g) || []).length;
         const closeBraces = (trimmed.match(/\}/g) || []).length;
         const openBrackets = (trimmed.match(/\[/g) || []).length;
         const closeBrackets = (trimmed.match(/\]/g) || []).length;
-        
+
         // Net increase: more opening than closing
         const netChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
-        
+
         if (netChange > 0) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -392,12 +416,12 @@ function activate(context) {
             const twigFormatter = new TwigFormatter();
             const text = document.getText();
             const formattedText = twigFormatter.format(text);
-            
+
             // Create a text edit that replaces the entire document
             const firstLine = document.lineAt(0);
             const lastLine = document.lineAt(document.lineCount - 1);
             const range = new vscode.Range(firstLine.range.start, lastLine.range.end);
-            
+
             return [vscode.TextEdit.replace(range, formattedText)];
         }
     });
@@ -408,7 +432,7 @@ function activate(context) {
             const twigFormatter = new TwigFormatter();
             const text = document.getText(range);
             const formattedText = twigFormatter.format(text);
-            
+
             return [vscode.TextEdit.replace(range, formattedText)];
         }
     });
@@ -418,7 +442,7 @@ function activate(context) {
         provideCompletionItems(document, position) {
             const twigConfig = vscode.workspace.getConfiguration('ultimateTwig.twig.completion');
             const twigEnabled = twigConfig.get('enabled', true);
-            
+
             if (!twigEnabled) {
                 return [];
             }
@@ -429,12 +453,12 @@ function activate(context) {
             // Check if we're in a Twig context
             if (linePrefix.includes('{{') || linePrefix.includes('{%')) {
                 // Add Twig tag completions
-                const tags = ['if', 'else', 'elseif', 'endif', 'for', 'endfor', 'block', 'endblock', 
+                const tags = ['if', 'else', 'elseif', 'endif', 'for', 'endfor', 'block', 'endblock',
                     'extends', 'include', 'import', 'from', 'macro', 'endmacro', 'set', 'endset',
                     'embed', 'endembed', 'apply', 'endapply', 'cache', 'endcache', 'with', 'endwith',
                     'autoescape', 'endautoescape', 'spaceless', 'endspaceless', 'trans', 'endtrans',
                     'verbatim', 'endverbatim', 'sandbox', 'endsandbox', 'do', 'flush', 'deprecated'];
-                
+
                 tags.forEach(tag => {
                     const item = new vscode.CompletionItem(tag, vscode.CompletionItemKind.Keyword);
                     item.detail = 'Twig tag';
@@ -450,7 +474,7 @@ function activate(context) {
                     'lower', 'map', 'markdown_to_html', 'merge', 'nl2br', 'number_format', 'raw',
                     'reduce', 'replace', 'reverse', 'round', 'slice', 'sort', 'spaceless', 'split',
                     'striptags', 'title', 'timezone_name', 'trim', 'u', 'upper', 'url_encode', 'slug'];
-                
+
                 filters.forEach(filter => {
                     const item = new vscode.CompletionItem(filter, vscode.CompletionItemKind.Function);
                     item.detail = 'Twig filter';
@@ -462,7 +486,7 @@ function activate(context) {
                 const functions = ['attribute', 'block', 'constant', 'country_timezones', 'cycle', 'date',
                     'dump', 'html_classes', 'include', 'max', 'min', 'parent', 'random',
                     'range', 'source', 'template_from_string'];
-                
+
                 functions.forEach(func => {
                     const item = new vscode.CompletionItem(func, vscode.CompletionItemKind.Function);
                     item.detail = 'Twig function';
@@ -504,7 +528,7 @@ function activate(context) {
         provideCompletionItems(document, position) {
             const htmlConfig = vscode.workspace.getConfiguration('ultimateTwig.html.completion');
             const htmlEnabled = htmlConfig.get('enabled', true);
-            
+
             if (!htmlEnabled) {
                 return [];
             }
@@ -516,7 +540,7 @@ function activate(context) {
             const beforeCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
             const twigDelimiters = (beforeCursor.match(/\{\{|\{%|\{#/g) || []).length;
             const twigClosers = (beforeCursor.match(/\}\}|%\}|#\}/g) || []).length;
-            
+
             // Only provide HTML completions if we're not inside Twig tags
             if (twigDelimiters === twigClosers) {
                 // Common HTML tags
@@ -524,7 +548,7 @@ function activate(context) {
                     'form', 'input', 'button', 'select', 'option', 'textarea', 'label',
                     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'main',
                     'section', 'article', 'aside', 'strong', 'em', 'code', 'pre'];
-                
+
                 htmlTags.forEach(tag => {
                     const item = new vscode.CompletionItem(tag, vscode.CompletionItemKind.Property);
                     item.detail = 'HTML tag';
@@ -536,7 +560,7 @@ function activate(context) {
                 if (linePrefix.match(/<[a-zA-Z0-9-]+\s+[^>]*$/)) {
                     const attributes = ['class', 'id', 'style', 'src', 'href', 'alt', 'title', 'type', 'name',
                         'value', 'placeholder', 'data-', 'aria-', 'role', 'tabindex'];
-                    
+
                     attributes.forEach(attr => {
                         const item = new vscode.CompletionItem(attr, vscode.CompletionItemKind.Property);
                         item.detail = 'HTML attribute';
@@ -555,7 +579,7 @@ function activate(context) {
         provideCompletionItems(document, position) {
             const cssConfig = vscode.workspace.getConfiguration('ultimateTwig.css.completion');
             const cssEnabled = cssConfig.get('enabled', true);
-            
+
             if (!cssEnabled) {
                 return [];
             }
@@ -569,7 +593,7 @@ function activate(context) {
                     'padding', 'margin', 'width', 'height', 'display', 'position', 'top',
                     'left', 'right', 'bottom', 'font-size', 'font-family', 'font-weight',
                     'text-align', 'text-decoration', 'flex', 'grid', 'opacity', 'z-index'];
-                
+
                 cssProperties.forEach(prop => {
                     const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
                     item.detail = 'CSS property';
@@ -587,13 +611,13 @@ function activate(context) {
         provideCompletionItems(document, position) {
             const jsConfig = vscode.workspace.getConfiguration('ultimateTwig.javascript.completion');
             const jsEnabled = jsConfig.get('enabled', true);
-            
+
             if (!jsEnabled) {
                 return [];
             }
 
             const completions = [];
-            
+
             // Check if we're in a script tag context
             const beforeCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
             const inScript = beforeCursor.lastIndexOf('<script') > beforeCursor.lastIndexOf('</script>');
@@ -602,7 +626,7 @@ function activate(context) {
                 // Common JavaScript keywords and functions
                 const jsKeywords = ['function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 'return',
                     'class', 'new', 'this', 'typeof', 'async', 'await', 'try', 'catch'];
-                
+
                 jsKeywords.forEach(keyword => {
                     const item = new vscode.CompletionItem(keyword, vscode.CompletionItemKind.Keyword);
                     item.detail = 'JavaScript keyword';
@@ -613,7 +637,7 @@ function activate(context) {
                 const jsMethods = ['console.log', 'document.querySelector', 'document.getElementById',
                     'addEventListener', 'fetch', 'Promise', 'Array', 'Object', 'JSON.parse',
                     'JSON.stringify', 'setTimeout', 'setInterval'];
-                
+
                 jsMethods.forEach(method => {
                     const item = new vscode.CompletionItem(method, vscode.CompletionItemKind.Method);
                     item.detail = 'JavaScript method';
