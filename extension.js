@@ -174,7 +174,7 @@ class TwigFormatter {
             formattedLines.push(formattedLine);
             
             // Check for opening Twig tags that should increase indent
-            if (this.isOpeningTag(trimmedLine) && !this.isSelfClosingTag(trimmedLine)) {
+            if (this.isOpeningTag(trimmedLine) && !this.isSelfClosingTag(trimmedLine) && !this.isSingleLineBlock(trimmedLine)) {
                 twigIndentLevel++;
             }
             
@@ -183,6 +183,7 @@ class TwigFormatter {
                 twigIndentLevel++;
             }
 
+            
             // Check for opening HTML tags that should increase indent
             if (this.shouldIncreaseHtmlIndent(trimmedLine, isCompleteTag)) {
                 htmlIndentLevel++;
@@ -197,22 +198,23 @@ class TwigFormatter {
      */
     isOpeningTag(line) {
         const openingTags = [
-            /\{%\s*block\s+/,
-            /\{%\s*for\s+/,
-            /\{%\s*if\s+/,
-            /\{%\s*macro\s+/,
-            /\{%\s*set\s+/,
-            /\{%\s*embed\s+/,
-            /\{%\s*autoescape\s+/,
-            /\{%\s*spaceless\s*%\}/,
-            /\{%\s*trans\s*%\}/,
-            /\{%\s*apply\s+/,
-            /\{%\s*cache\s+/,
-            /\{%\s*sandbox\s*%\}/,
-            /\{%\s*with\s+/,
-            /\{%\s*verbatim\s*%\}/
+            /\{%-?\s*block\s+/,
+            /\{%-?\s*for\s+/,
+            /\{%-?\s*if\s+/,
+            /\{%-?\s*macro\s+/,
+            /\{%-?\s*embed\s+/,
+            /\{%-?\s*autoescape\s+/,
+            /\{%-?\s*spaceless\s*%\}/,
+            /\{%-?\s*trans\s*%\}/,
+            /\{%-?\s*apply\s+/,
+            /\{%-?\s*cache\s+/,
+            /\{%-?\s*sandbox\s*%\}/,
+            /\{%-?\s*with\s+/,
+            /\{%-?\s*verbatim\s*%\}/
         ];
-        
+        // set should NOT indent unless multiline set (rare in Twig, but possible)
+        const isSingleLineSet = /^\{%-?\s*set\s+.+%\}$/.test(line);
+        if (isSingleLineSet) return false;
         return openingTags.some(pattern => pattern.test(line));
     }
 
@@ -221,24 +223,23 @@ class TwigFormatter {
      */
     isClosingTag(line) {
         const closingTags = [
-            /\{%\s*endblock\s*%\}/,
-            /\{%\s*endfor\s*%\}/,
-            /\{%\s*endif\s*%\}/,
-            /\{%\s*endmacro\s*%\}/,
-            /\{%\s*endset\s*%\}/,
-            /\{%\s*endembed\s*%\}/,
-            /\{%\s*endautoescape\s*%\}/,
-            /\{%\s*endspaceless\s*%\}/,
-            /\{%\s*endtrans\s*%\}/,
-            /\{%\s*endapply\s*%\}/,
-            /\{%\s*endcache\s*%\}/,
-            /\{%\s*endsandbox\s*%\}/,
-            /\{%\s*endwith\s*%\}/,
-            /\{%\s*endverbatim\s*%\}/,
-            /\{%\s*else\s*%\}/,
-            /\{%\s*elseif\s+/
+            /\{%-?\s*endblock\s*-?%\}/,
+            /\{%-?\s*endfor\s*-?%\}/,
+            /\{%-?\s*endif\s*-?%\}/,
+            /\{%-?\s*endmacro\s*-?%\}/,
+            /\{%-?\s*endset\s*-?%\}/,
+            /\{%-?\s*endembed\s*-?%\}/,
+            /\{%-?\s*endautoescape\s*-?%\}/,
+            /\{%-?\s*endspaceless\s*-?%\}/,
+            /\{%-?\s*endtrans\s*-?%\}/,
+            /\{%-?\s*endapply\s*-?%\}/,
+            /\{%-?\s*endcache\s*-?%\}/,
+            /\{%-?\s*endsandbox\s*-?%\}/,
+            /\{%-?\s*endwith\s*-?%\}/,
+            /\{%-?\s*endverbatim\s*-?%\}/,
+            /\{%-?\s*else\s*-?%\}/,
+            /\{%-?\s*elseif\s+/
         ];
-        
         return closingTags.some(pattern => pattern.test(line));
     }
 
@@ -246,18 +247,16 @@ class TwigFormatter {
      * Check if tag is self-closing
      */
     isSelfClosingTag(line) {
-        // Tags that don't require an end tag
         const selfClosing = [
-            /\{%\s*include\s+/,
-            /\{%\s*import\s+/,
-            /\{%\s*from\s+/,
-            /\{%\s*use\s+/,
-            /\{%\s*extends\s+/,
-            /\{%\s*do\s+/,
-            /\{%\s*flush\s*%\}/,
-            /\{%\s*deprecated\s+/
+            /\{%-?\s*include\s+/,
+            /\{%-?\s*import\s+/,
+            /\{%-?\s*from\s+/,
+            /\{%-?\s*use\s+/,
+            /\{%-?\s*extends\s+/,
+            /\{%-?\s*do\s+/,
+            /\{%-?\s*flush\s*-?%\}/,
+            /\{%-?\s*deprecated\s+/
         ];
-        
         return selfClosing.some(pattern => pattern.test(line));
     }
 
@@ -267,12 +266,17 @@ class TwigFormatter {
      */
     isMidBlockTag(line) {
         const midBlockTags = [
-            /\{%\s*else\s*%\}/,
-            /\{%\s*elseif\s+/
+            /\{%-?\s*else\s*-?%\}/,
+            /\{%-?\s*elseif\s+/
         ];
-        
         return midBlockTags.some(pattern => pattern.test(line));
     }
+
+    isSingleLineBlock(line) {
+        // Match any "open" followed immediately by a "close"
+        return /\{%-?\s*(if|for|block|macro|embed|autoescape|apply|cache|sandbox|with)\s+.*%\}\s*\{%-?\s*end\1\s*-?%\}/.test(line);
+    }
+
 
     /**
      * Check if HTML indent should be decreased for this line
