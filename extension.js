@@ -69,8 +69,13 @@ class TwigFormatter {
                 // Check if the attribute ends here
                 const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
                 if (quoteCount % 2 === 0) {
-                    // Attribute closed
-                    formattedLines.push(attributeLines.join('\n'));
+                    // Attribute closed -- collapse into a single line (removing linebreaks, extra spaces)
+                    let collapsed = attributeLines.join(' ')
+                        .replace(/\s*\n\s*/g, ' ')                  // Remove all newlines and surrounding whitespace
+                        .replace(/\s{2,}/g, ' ')                    // Collapse multiple spaces
+                        .replace(/\s*([{%}])\s*/g, '$1');           // Optional: trim spaces around twig brackets
+
+                    formattedLines.push(collapsed.trim());
                     insideTwigAttribute = false;
                     attributeLines = [];
                     attributeQuote = null;
@@ -90,7 +95,11 @@ class TwigFormatter {
 
             // Detect single-line attribute with Twig and push directly
             if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
-                formattedLines.push(line);
+                // Collapse to single line
+                let collapsed = line.replace(/\s*\n\s*/g, ' ')
+                    .replace(/\s{2,}/g, ' ')
+                    .replace(/\s*([{%}])\s*/g, '$1');
+                formattedLines.push(collapsed.trim());
                 continue;
             }
 
