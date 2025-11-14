@@ -11,6 +11,53 @@ class TwigFormatter {
         this.preserveNewLines = true;
     }
 
+
+    /**
+ * Collapse Twig attribute (multiline or single line) into a single line
+ * Adds a space before first twig block and after last twig block (if exists).
+ */
+    collapseTwigAttribute(attributeLines) {
+        let collapsed = attributeLines.join(' ')
+            .replace(/\s*\n\s*/g, ' ')    // Remove newlines
+            .replace(/\s{2,}/g, ' ');     // Collapse multiple spaces
+
+        // Does this class/style/... attribute contain Twig in the value?
+        const twigBlockMatch = collapsed.match(/({%|{{)/);
+        if (twigBlockMatch) {
+            // Find where the quoted value starts and ends
+            let m = collapsed.match(/=\s*([\'"])(.*)\1/);
+            if (m) {
+                let quote = m[1];
+                let attrValue = m[2];
+                // Ensure single space before first Twig block, and after last one
+
+                // Before first Twig
+                attrValue = attrValue.replace(/^([^\{\{%]+?)\s*({[{%])/, (full, before, twig) => {
+                    return before.trim() + ' ' + twig;
+                });
+                // After last Twig
+                attrValue = attrValue.replace(/(%}|}})\s*$/, (full, endTwig) => {
+                    return endTwig + ' ';
+                });
+
+                // Remove extra spaces at end/start of value just in case
+                attrValue = attrValue.replace(/\s{2,}/g, ' ').trim();
+
+                // Rebuild attribute
+                collapsed = collapsed.replace(/=\s*([\'"])(.*)\1/, `=${quote}${attrValue}${quote}`);
+            } else {
+                // Fallback: brute container, ensure any nearby Twig gets a space before/after
+                collapsed = collapsed
+                    .replace(/([^\{\{%]+?)\s*({[{%])/, (full, before, twig) => before.trim() + ' ' + twig)
+                    .replace(/(%}|}})\s*([\'"])/g, '$1 $2')
+                    .replace(/\s{2,}/g, ' ');
+            }
+        }
+
+        return collapsed.trim();
+    }
+
+
     /**
      * Split a line into Twig splitLines and other content
      */
@@ -66,16 +113,12 @@ class TwigFormatter {
             // If already inside a multiline attribute value block
             if (insideTwigAttribute) {
                 attributeLines.push(line);
-                // Check if the attribute ends here
                 const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
                 if (quoteCount % 2 === 0) {
-                    // Attribute closed -- collapse into a single line (removing linebreaks, extra spaces)
-                    let collapsed = attributeLines.join(' ')
-                        .replace(/\s*\n\s*/g, ' ')                  // Remove all newlines and surrounding whitespace
-                        .replace(/\s{2,}/g, ' ')                    // Collapse multiple spaces
-                        .replace(/\s*([{%}])\s*/g, '$1');           // Optional: trim spaces around twig brackets
-
-                    formattedLines.push(collapsed.trim());
+                    // Attribute closed -- collapse into a single line with custom rules and indent correctly
+                    let collapsed = this.collapseTwigAttribute(attributeLines);
+                    let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
+                    formattedLines.push(indent + collapsed);
                     insideTwigAttribute = false;
                     attributeLines = [];
                     attributeQuote = null;
@@ -86,20 +129,17 @@ class TwigFormatter {
             // Detect attribute starting with an open quote and Twig
             const attrMatch = line.match(/<[\w\-]+[^>]*(class|style|[a-zA-Z\-]+)=([\'"])([^\'"]*({%|{{)[^\'"]*)$/);
             if (attrMatch) {
-                // Begin verbatim block for attribute with Twig
                 insideTwigAttribute = true;
-                attributeQuote = attrMatch[2]; // ' or "
+                attributeQuote = attrMatch[2];
                 attributeLines = [line];
                 continue;
             }
 
-            // Detect single-line attribute with Twig and push directly
+            // Detect single-line attribute with Twig and push directly (with indentation)
             if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
-                // Collapse to single line
-                let collapsed = line.replace(/\s*\n\s*/g, ' ')
-                    .replace(/\s{2,}/g, ' ')
-                    .replace(/\s*([{%}])\s*/g, '$1');
-                formattedLines.push(collapsed.trim());
+                let collapsed = this.collapseTwigAttribute([line]);
+                let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
+                formattedLines.push(indent + collapsed);
                 continue;
             }
 
