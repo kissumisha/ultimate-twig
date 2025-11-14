@@ -180,35 +180,42 @@ class TwigFormatter {
             let splitLines = this.splitTwigLine(line);
 
             for (let t = 0; t < splitLines.length; t++) {
-                let token = splitLines[t].trim();
-                // HTML tag detection has to remain per-token
-                const isCompleteTag = this.isHtmlOpeningTag(token) && this.isHtmlClosingTag(token);
-                if (this.shouldDecreaseHtmlIndent(token, isCompleteTag)) {
+                let item = splitLines[t].trim();
+                // HTML tag detection has to remain per-item
+                const isCompleteTag = this.isHtmlOpeningTag(item) && this.isHtmlClosingTag(item);
+
+                if (this.isTwigInsideAttribute(item)) {
+                    formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + item);
+                    continue;
+                }
+
+
+                if (this.shouldDecreaseHtmlIndent(item, isCompleteTag)) {
                     htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
                 }
 
                 // Detect Twig closing tags
-                if (this.isClosingTag(token)) {
+                if (this.isClosingTag(item)) {
                     twigIndentLevel = Math.max(0, twigIndentLevel - 1);
                 }
 
                 // Output line at current indent
-                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + token);
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + item);
 
                 // Increase indent after opening Twig tags (but not for single-line sets or blocks)
-                if (this.isOpeningTag(token) && !this.isSelfClosingTag(token) && !this.isSingleLineBlock(token)) {
+                if (this.isOpeningTag(item) && !this.isSelfClosingTag(item) && !this.isSingleLineBlock(item)) {
                     twigIndentLevel++;
                 }
             
                 // Special handling for else/elseif - they decrease then increase indent
-                if (this.isMidBlockTag(token)) {
+                if (this.isMidBlockTag(item)) {
                     // This is correct: decrease then increase for mid blocks
                     twigIndentLevel++;
                 }
 
 
                 // Check for opening HTML tags that should increase indent
-                if (this.shouldIncreaseHtmlIndent(token, isCompleteTag)) {
+                if (this.shouldIncreaseHtmlIndent(item, isCompleteTag)) {
                     htmlIndentLevel++;
                 }
             }
@@ -301,7 +308,12 @@ class TwigFormatter {
         return /\{%-?\s*(if|for|block|macro|embed|autoescape|apply|cache|sandbox|with)\s+.*%\}\s*\{%-?\s*end\1\s*-?%\}/.test(line);
     }
 
+    isTwigInsideAttribute(line) {
+        // returns true if Twig appears inside attribute quotes (single or double)
+        return /[a-zA-Z0-9-]+=(["']).*\{[{%].*\1/.test(line);
+        // return /[a-zA-Z0-9-]+=(["'])[\s\S]*?(\{\{|\{%)[\s\S]*?\1/.test(line);
 
+    }
     /**
      * Check if HTML indent should be decreased for this line
      */
