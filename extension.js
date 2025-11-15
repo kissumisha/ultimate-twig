@@ -159,12 +159,13 @@ class TwigFormatter {
             }
 
             // Detect single-line attribute with Twig and push directly (with indentation)
-            if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
-                let collapsed = this.collapseTwigAttribute([line]);
-                let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
-                formattedLines.push(indent + collapsed);
-                continue;
-            }
+            // DISABLED: Now handled by hasTwigInlineInHtmlTag to avoid adding extra spaces
+            // if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
+            //     let collapsed = this.collapseTwigAttribute([line]);
+            //     let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
+            //     formattedLines.push(indent + collapsed);
+            //     continue;
+            // }
 
             ////////////////////////
             ////////////////////////
@@ -287,6 +288,25 @@ class TwigFormatter {
                     htmlIndentLevel += netChange;
                 }
 
+                continue;
+            }
+
+            // Check if line has Twig inline within an HTML tag - if so, don't split it
+            if (this.hasTwigInlineInHtmlTag(trimmedLine)) {
+                // Check if we need to adjust HTML indent for opening/closing tags
+                const isCompleteTag = this.isHtmlOpeningTag(trimmedLine) && this.isHtmlClosingTag(trimmedLine);
+                
+                if (this.shouldDecreaseHtmlIndent(trimmedLine, isCompleteTag)) {
+                    htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
+                }
+                
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
+                
+                // Don't increase indent if line contains a self-closing tag (like <input>, <br>, etc.)
+                if (this.shouldIncreaseHtmlIndent(trimmedLine, isCompleteTag) && !this.containsSelfClosingTag(trimmedLine)) {
+                    htmlIndentLevel++;
+                }
+                
                 continue;
             }
 
@@ -428,6 +448,32 @@ class TwigFormatter {
         // return /[a-zA-Z0-9-]+=(["'])[\s\S]*?(\{\{|\{%)[\s\S]*?\1/.test(line);
 
     }
+
+    /**
+     * Check if line contains Twig expressions inline within an HTML tag
+     * This detects patterns
+     */
+    hasTwigInlineInHtmlTag(line) {
+        const trimmed = line.trim();
+        // Check if line starts with < and ends with >, contains Twig, but is not just a Twig tag
+        if (!trimmed.startsWith('<') || !trimmed.includes('{%') && !trimmed.includes('{{')) {
+            return false;
+        }
+        
+        // Count opening and closing angle brackets
+        const openBrackets = (trimmed.match(/</g) || []).length;
+        const closeBrackets = (trimmed.match(/>/g) || []).length;
+        
+        // If we have a complete HTML tag (balanced brackets) with Twig inside
+        if (openBrackets === closeBrackets && openBrackets > 0) {
+            // Make sure it's not a closing tag and contains Twig blocks
+            const hasTwig = /\{[{%]/.test(trimmed);
+            const isNotClosingTag = !trimmed.startsWith('</');
+            return hasTwig && isNotClosingTag;
+        }
+        
+        return false;
+    }
     /**
      * Check if HTML indent should be decreased for this line
      */
@@ -524,9 +570,20 @@ class TwigFormatter {
      */
     isHtmlSelfClosingTag(line) {
         // Self-closing tags like <br/>, <img/>, <input/>, or tags that don't need closing
-        const selfClosingTags = /<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\s[^>]*)?\/?>$/i;
+        // Must match the entire line (after trimming) to avoid false positives like "<small>Text<br>"
+        const selfClosingTags = /^<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\s[^>]*)?\/?>$/i;
         const trimmed = line.trim();
         return selfClosingTags.test(trimmed) || trimmed.endsWith('/>');
+    }
+
+    /**
+     * Check if line contains a self-closing HTML tag (even with content after)
+     */
+    containsSelfClosingTag(line) {
+        // Check if line contains self-closing tags like <input>, <br>, etc.
+        // This includes cases like "<input ...> Text" where there's content after the tag
+        const selfClosingTags = /<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\s[^>]*)?>/i;
+        return selfClosingTags.test(line) || line.includes('/>');
     }
 }
 
