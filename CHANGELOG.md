@@ -1,5 +1,17 @@
 # Change Log
 
+
+## [1.0.1] - 2024-11-15
+
+### Fixes
+- Resolved an issue with incorrect indentation in nested Twig blocks
+- Added tags `{%- {%~` 
+- Fixed a bug causing IntelliSense to fail for certain Twig functions
+- Fix issue where inlince tags set wring indentation
+- Keep inlince Twig format inside tags and attritutes
+- Fixed wrong attribution in Lincese
+
+
 ## [1.0.0] - 2024-11-08
 
 - Initial published release
