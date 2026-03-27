@@ -555,14 +555,14 @@ class TwigFormatter {
     isHtmlOpeningTag(line) {
         // Match opening HTML tags (like <div>, <p>, etc.)
         // Use [^<>]* to avoid matching nested angle brackets
-        return /<[a-zA-Z][a-zA-Z0-9]*(\s[^<>]*)?>/.test(line);
+        return /<[a-zA-Z][a-zA-Z0-9\-._]*(\s[^<>]*)?>/.test(line);
     }
 
     /**
      * Check if line contains an HTML closing tag
      */
     isHtmlClosingTag(line) {
-        return /<\/[a-zA-Z][a-zA-Z0-9]*>/.test(line);
+        return /<\/[a-zA-Z][a-zA-Z0-9\-._]*>/.test(line);
     }
 
     /**
