@@ -1,6 +1,12 @@
 # Change Log
 
 
+## [1.1.0] - 2026-03-27
+
+### Added
+- Support for custom HTML tags (web components) such as `<my-component>`, `<app-header>`, etc.
+
+
 ## [1.0.1] - 2024-11-15
 
 ### Fixes
