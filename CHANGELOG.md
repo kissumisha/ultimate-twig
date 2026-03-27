@@ -6,6 +6,9 @@
 ### Added
 - Support for custom HTML tags (web components) such as `<my-component>`, `<app-header>`, etc.
 
+### Fixes
+- Fixed incorrect indentation when HTML tags appear on the same line as Twig comments (e.g. `</div>{# comment #}`)
+
 
 ## [1.0.1] - 2024-11-15
 
