@@ -116,8 +116,26 @@ class TwigFormatter {
                 continue;
             }
 
-            // Handle multi-line comments
+            // Handle comments — but first check for HTML mixed on the same line
             if (trimmedLine.includes('{#')) {
+                // Check if this is an inline comment on a line with HTML (e.g. "</div>{# comment #}")
+                const htmlBeforeComment = trimmedLine.replace(/\{#[\s\S]*?#\}/g, '').trim();
+                if (htmlBeforeComment.length > 0 && trimmedLine.includes('#}')) {
+                    // Process HTML indent changes from the non-comment part
+                    const isCompleteTag = this.isHtmlOpeningTag(htmlBeforeComment) && this.isHtmlClosingTag(htmlBeforeComment);
+
+                    if (this.shouldDecreaseHtmlIndent(htmlBeforeComment, isCompleteTag)) {
+                        htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
+                    }
+
+                    formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
+
+                    if (this.shouldIncreaseHtmlIndent(htmlBeforeComment, isCompleteTag)) {
+                        htmlIndentLevel++;
+                    }
+                    continue;
+                }
+
                 inComment = true;
             }
 
@@ -516,14 +534,14 @@ class TwigFormatter {
     isHtmlOpeningTag(line) {
         // Match opening HTML tags (like <div>, <p>, etc.)
         // Use [^<>]* to avoid matching nested angle brackets
-        return /<[a-zA-Z][a-zA-Z0-9]*(\s[^<>]*)?>/.test(line);
+        return /<[a-zA-Z][a-zA-Z0-9\-._]*(\s[^<>]*)?>/.test(line);
     }
 
     /**
      * Check if line contains an HTML closing tag
      */
     isHtmlClosingTag(line) {
-        return /<\/[a-zA-Z][a-zA-Z0-9]*>/.test(line);
+        return /<\/[a-zA-Z][a-zA-Z0-9\-._]*>/.test(line);
     }
 
     /**
