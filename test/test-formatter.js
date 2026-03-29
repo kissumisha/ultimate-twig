@@ -734,6 +734,129 @@ body {
 `
 );
 
+// ── Script/style tag indentation bug (single-line tags inside nesting) ───────
+console.log('\n=== Script/Style Tag Indentation Bug ===\n');
+
+test(
+    'single-line script tag inside HTML nesting does not reset indent',
+    `
+<div>
+    <script src="/js/app.js"></script>
+    <p>Hello</p>
+</div>
+`,
+    `
+<div>
+    <script src="/js/app.js"></script>
+    <p>Hello</p>
+</div>
+`
+);
+
+test(
+    'single-line script tag inside Twig block does not reset indent',
+    `
+{% block head %}
+    <script src="/js/app.js"></script>
+    <p>Hello</p>
+{% endblock %}
+`,
+    `
+{% block head %}
+    <script src="/js/app.js"></script>
+    <p>Hello</p>
+{% endblock %}
+`
+);
+
+test(
+    'single-line script tag deep in HTML nesting does not collapse indent',
+    `
+<div class="wrapper">
+    <header>
+        <script src="/js/app.js"></script>
+        <h1>Title</h1>
+    </header>
+</div>
+`,
+    `
+<div class="wrapper">
+    <header>
+        <script src="/js/app.js"></script>
+        <h1>Title</h1>
+    </header>
+</div>
+`
+);
+
+test(
+    'single-line style tag inside HTML nesting does not reset indent',
+    `
+<div>
+    <style type="text/css"></style>
+    <p>Hello</p>
+</div>
+`,
+    `
+<div>
+    <style type="text/css"></style>
+    <p>Hello</p>
+</div>
+`
+);
+
+test(
+    'single-line script with Twig src attribute inside Twig block',
+    `
+{% block head %}
+    <script src="/js/app.js?v={{ cache_v }}"></script>
+    <p>Hello</p>
+{% endblock %}
+`,
+    `
+{% block head %}
+    <script src="/js/app.js?v={{ cache_v }}"></script>
+    <p>Hello</p>
+{% endblock %}
+`
+);
+
+test(
+    'multi-line script inside Twig block still indents correctly',
+    `
+{% block scripts %}
+<script>
+var x = 1;
+</script>
+{% endblock %}
+`,
+    `
+{% block scripts %}
+    <script>
+        var x = 1;
+    </script>
+{% endblock %}
+`
+);
+
+test(
+    'multiple single-line script tags inside nesting - no indent drift',
+    `
+<div>
+    <script src="/js/a.js"></script>
+    <script src="/js/b.js"></script>
+    <p>After scripts</p>
+</div>
+`,
+    `
+<div>
+    <script src="/js/a.js"></script>
+    <script src="/js/b.js"></script>
+    <p>After scripts</p>
+</div>
+`
+);
+
 // ─── Summary ────────────────────────────────────────────────────────────────
 
 console.log(`\n${'─'.repeat(50)}`);

@@ -99,77 +99,12 @@ class TwigFormatter {
         let scriptTagBaseIndent = 0; // Store HTML indent level when entering script tag
         let styleTagBaseIndent = 0;  // Store HTML indent level when entering style tag
 
-        let insideTwigAttribute = false;
-        let attributeQuote = null;
-        let attributeLines = [];
-
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
             let trimmedLine = line.trim();
 
             ////////////////////////
             ////////////////////////
-
-            // If already inside a multiline attribute value block
-            /*
-            if (insideTwigAttribute) {
-                continue;
-
-                attributeLines.push(line);
-                const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
-                if (quoteCount % 2 === 0) {
-                    // Attribute closed -- collapse into a single line with custom rules and indent correctly
-                    let collapsed = this.collapseTwigAttribute(attributeLines);
-                    let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
-                    formattedLines.push(indent + collapsed);
-                    insideTwigAttribute = false;
-                    attributeLines = [];
-                    attributeQuote = null;
-                }
-                continue;
-            }
-            */
-
-            // If already inside a multiline attribute value block
-            // if (insideTwigAttribute) {
-            //     attributeLines.push(line);
-            //     const quoteCount = attributeLines.join('\n').split(attributeQuote).length - 1;
-            //     if (quoteCount % 2 === 0) {
-            //         // Attribute closed -- collapse into a single line with custom rules and indent correctly
-            //         let collapsed = this.collapseTwigAttribute(attributeLines);
-            //         let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
-            //         formattedLines.push(indent + collapsed);
-            //         insideTwigAttribute = false;
-            //         attributeLines = [];
-            //         attributeQuote = null;
-            //     }
-            //     continue;
-            // }
-
-
-
-            // Detect attribute starting with an open quote and Twig
-            const attrMatch = line.match(/<[\w\-]+[^>]*(class|style|[a-zA-Z\-]+)=([\'"])([^\'"]*({%|{{)[^\'"]*)$/);
-            if (attrMatch) {
-
-                insideTwigAttribute = true;
-                attributeQuote = attrMatch[2];
-                attributeLines = [line];
-                continue;
-            }
-
-            // Detect single-line attribute with Twig and push directly (with indentation)
-            // DISABLED: Now handled by hasTwigInlineInHtmlTag to avoid adding extra spaces
-            // if (line.match(/<[\w\-]+[^>]*=[\'"][^\'"]*({%|{{)[^\'"]*[\'"][^>]*>/)) {
-            //     let collapsed = this.collapseTwigAttribute([line]);
-            //     let indent = indentChar.repeat(twigIndentLevel + htmlIndentLevel);
-            //     formattedLines.push(indent + collapsed);
-            //     continue;
-            // }
-
-            ////////////////////////
-            ////////////////////////
-
 
             // Skip empty lines if preserveNewLines is true
             if (trimmedLine === '' && this.preserveNewLines) {
@@ -243,8 +178,8 @@ class TwigFormatter {
                 continue;
             }
 
-            // Handle closing script/style tags
-            if (isScriptClosing) {
+            // Handle closing script/style tags - only when we are actually inside one
+            if (isScriptClosing && inScriptTag) {
                 htmlIndentLevel = scriptTagBaseIndent; // Restore HTML indent level from before script tag
                 inScriptTag = false;
 
@@ -255,7 +190,7 @@ class TwigFormatter {
                 continue;
             }
 
-            if (isStyleClosing) {
+            if (isStyleClosing && inStyleTag) {
                 htmlIndentLevel = styleTagBaseIndent; // Restore HTML indent level from before style tag
                 inStyleTag = false;
 
