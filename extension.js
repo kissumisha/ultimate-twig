@@ -194,16 +194,21 @@ class TwigFormatter {
                 continue;
             }
 
-            // Handle verbatim blocks (no formatting inside)
-            if (trimmedLine.match(/\{%\s*verbatim\s*%\}/)) {
+            // Handle verbatim blocks (no formatting inside, but re-indent at block level)
+            if (trimmedLine.match(/\{%-?\s*verbatim\s*%\}/)) {
+                // Output the opening verbatim tag at current indent level
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
                 inVerbatim = true;
+                twigIndentLevel++; // Content inside verbatim is indented one level deeper
+                continue;
             }
 
             if (inVerbatim) {
-                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
-                if (trimmedLine.match(/\{%\s*endverbatim\s*%\}/)) {
+                if (trimmedLine.match(/\{%-?\s*endverbatim\s*%\}/)) {
+                    twigIndentLevel = Math.max(0, twigIndentLevel - 1);
                     inVerbatim = false;
                 }
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
                 continue;
             }
 
@@ -313,6 +318,22 @@ class TwigFormatter {
             // Now split the line on Twig tags
             let splitLines = this.splitTwigLine(line);
 
+            // If this line contains no {% %} block-level tags (only {{ }} expressions or plain text),
+            // output it as a single line to avoid splitting inline expressions like "Hello {{ name }}!"
+            const hasTwigBlockTag = /\{%/.test(trimmedLine);
+            if (!hasTwigBlockTag && splitLines.length > 0) {
+                // Check for HTML indent changes on the whole trimmed line
+                const isCompleteTag = this.isHtmlOpeningTag(trimmedLine) && this.isHtmlClosingTag(trimmedLine);
+                if (this.shouldDecreaseHtmlIndent(trimmedLine, isCompleteTag)) {
+                    htmlIndentLevel = Math.max(0, htmlIndentLevel - 1);
+                }
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
+                if (this.shouldIncreaseHtmlIndent(trimmedLine, isCompleteTag) && !this.containsSelfClosingTag(trimmedLine)) {
+                    htmlIndentLevel++;
+                }
+                continue;
+            }
+
             for (let t = 0; t < splitLines.length; t++) {
                 let item = splitLines[t].trim();
                 // HTML tag detection has to remain per-item
@@ -388,10 +409,10 @@ class TwigFormatter {
      */
     isClosingTag(line) {
         const closingTags = [
-            /\{%-?\s*endblock\s*-?%\}/,
+            /\{%-?\s*endblock(\s+\w+)?\s*-?%\}/,
             /\{%-?\s*endfor\s*-?%\}/,
             /\{%-?\s*endif\s*-?%\}/,
-            /\{%-?\s*endmacro\s*-?%\}/,
+            /\{%-?\s*endmacro(\s+\w+)?\s*-?%\}/,
             /\{%-?\s*endset\s*-?%\}/,
             /\{%-?\s*endembed\s*-?%\}/,
             /\{%-?\s*endautoescape\s*-?%\}/,
@@ -422,6 +443,11 @@ class TwigFormatter {
             /\{%-?\s*flush\s*-?%\}/,
             /\{%-?\s*deprecated\s+/
         ];
+        // Inline block shortcut: {% block name expression %} (value after the block name, no endblock needed)
+        // Distinguished from {% block name %} (opener) by having content after the name before %}
+        // Uses negative lookahead to avoid matching {% block name %} or {%- block name -%}
+        const isInlineBlockShortcut = /\{%-?\s*block\s+\w+\s+(?!-?%\}).*?-?%\}/.test(line);
+        if (isInlineBlockShortcut) return true;
         return selfClosing.some(pattern => pattern.test(line));
     }
 
@@ -438,8 +464,8 @@ class TwigFormatter {
     }
 
     isSingleLineBlock(line) {
-        // Match any "open" followed immediately by a "close"
-        return /\{%-?\s*(if|for|block|macro|embed|autoescape|apply|cache|sandbox|with)\s+.*%\}\s*\{%-?\s*end\1\s*-?%\}/.test(line);
+        // Match any "open" followed immediately by a "close" (endblock/endmacro may have an optional label)
+        return /\{%-?\s*(if|for|block|macro|embed|autoescape|apply|cache|sandbox|with)\s+.*%\}\s*\{%-?\s*end\1(\s+\w+)?\s*-?%\}/.test(line);
     }
 
     isTwigInsideAttribute(line) {
