@@ -55,29 +55,43 @@
             "type": "object",
             "title": "Ultimate Twig",
             "properties": {
+                "ultimateTwig.format.useTabs": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use tabs instead of spaces for indentation when formatting Twig files.",
+                    "order": 1
+                },
+                "ultimateTwig.format.indentSize": {
+                    "type": "number",
+                    "default": 4,
+                    "minimum": 1,
+                    "maximum": 8,
+                    "markdownDescription": "Number of spaces per indentation level when `#ultimateTwig.format.useTabs#` is `false`.",
+                    "order": 2
+                },
                 "ultimateTwig.twig.completion.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/disable Twig-specific completions (tags, filters, functions)",
-                    "order": 1
+                    "order": 3
                 },
                 "ultimateTwig.html.completion.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/disable HTML completions in Twig files",
-                    "order": 2
+                    "order": 4
                 },
                 "ultimateTwig.javascript.completion.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/disable JavaScript completions in script tags",
-                    "order": 3
+                    "order": 5
                 },
                 "ultimateTwig.css.completion.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/disable CSS completions in style attributes",
-                    "order": 4
+                    "order": 6
                 }
             }
         }
