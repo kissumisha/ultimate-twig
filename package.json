@@ -2,7 +2,7 @@
     "name": "ultimate-twig",
     "displayName": "Ultimate Twig",
     "description": "Complete Twig 3.x formatter, syntax highlighter, and IntelliSense with context-aware autocompletion for Twig, HTML, CSS, and JavaScript",
-    "version": "1.2.0",
+    "version": "1.1.2",
     "author": "Gary Aranda Dickens",
     "publisher": "TGOSystems",
     "engines": {
