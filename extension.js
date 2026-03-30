@@ -98,6 +98,12 @@ class TwigFormatter {
         let inStyleTag = false;
         let scriptTagBaseIndent = 0; // Store HTML indent level when entering script tag
         let styleTagBaseIndent = 0;  // Store HTML indent level when entering style tag
+        let inSetBlock = false;          // Inside a multiline {% set x = { ... } %}
+        let setBlockBaseIndent = 0;      // Indent level when entering set block
+        let setBlockBraceDepth = 0;      // Brace/bracket depth inside set block
+        let inMultiLineHtmlTag = false;  // Inside a multi-line HTML opening tag (no closing >)
+        let multiLineTagBaseIndent = 0;  // Base indent for the multi-line tag
+        let multiLineTagTwigDepth = 0;   // Twig indent depth within multi-line tag attributes
 
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
@@ -229,8 +235,9 @@ class TwigFormatter {
                 const openBrackets = (trimmed.match(/\[/g) || []).length;
                 const closeBrackets = (trimmed.match(/\]/g) || []).length;
 
-                // Calculate net change
-                const netChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
+                // Calculate net change, capped to ±1 to avoid over-indenting lines like [{
+                const rawChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
+                const netChange = Math.max(-1, Math.min(1, rawChange));
 
                 // For lines with net decrease, decrease indent before rendering
                 if (netChange < 0) {
@@ -246,6 +253,94 @@ class TwigFormatter {
                     htmlIndentLevel += netChange;
                 }
 
+                continue;
+            }
+
+            // Detect start of multiline {% set x = { ... %} or {% set x = [ ... %}
+            if (!inSetBlock && /\{%-?\s*set\s+\w+\s*=\s*[\{\[]/.test(trimmedLine) && !/\%\}/.test(trimmedLine)) {
+                inSetBlock = true;
+                setBlockBaseIndent = twigIndentLevel + htmlIndentLevel;
+
+                // Count braces/brackets on the opening line (strip {% set x = part)
+                const afterAssign = trimmedLine.replace(/^\{%-?\s*set\s+\w+\s*=\s*/, '');
+                const openBraces = (afterAssign.match(/\{/g) || []).length;
+                const closeBraces = (afterAssign.match(/\}/g) || []).length;
+                const openBrackets = (afterAssign.match(/\[/g) || []).length;
+                const closeBrackets = (afterAssign.match(/\]/g) || []).length;
+                setBlockBraceDepth = (openBraces + openBrackets) - (closeBraces + closeBrackets);
+
+                formattedLines.push(indentChar.repeat(setBlockBaseIndent) + trimmedLine);
+                continue;
+            }
+
+            // Handle indentation inside multiline set blocks
+            if (inSetBlock) {
+                // Check if this line closes the set block (contains %})
+                const closesSet = /\%\}/.test(trimmedLine);
+
+                // Count braces/brackets (exclude Twig delimiters from counting)
+                // Remove complete {% %} blocks, and also trailing %} on closing lines
+                const lineWithoutTwig = trimmedLine.replace(/\{%-?.*?-?%\}/g, '').replace(/-?%\}/g, '');
+                const openBraces = (lineWithoutTwig.match(/\{/g) || []).length;
+                const closeBraces = (lineWithoutTwig.match(/\}/g) || []).length;
+                const openBrackets = (lineWithoutTwig.match(/\[/g) || []).length;
+                const closeBrackets = (lineWithoutTwig.match(/\]/g) || []).length;
+                const netChange = (openBraces + openBrackets) - (closeBraces + closeBrackets);
+
+                // Cap change to ±1 per line to avoid over-indenting lines like { key: [
+                const clampedChange = Math.max(-1, Math.min(1, netChange));
+
+                // Decrease before rendering
+                if (clampedChange < 0) {
+                    setBlockBraceDepth = Math.max(0, setBlockBraceDepth + clampedChange);
+                }
+
+                formattedLines.push(indentChar.repeat(setBlockBaseIndent + setBlockBraceDepth) + trimmedLine);
+
+                // Increase after rendering
+                if (clampedChange > 0) {
+                    setBlockBraceDepth += clampedChange;
+                }
+
+                if (closesSet) {
+                    inSetBlock = false;
+                    setBlockBraceDepth = 0;
+                }
+                continue;
+            }
+
+            // Handle multi-line HTML opening tags (e.g. <a href="..." \n class="..."\n >)
+            if (inMultiLineHtmlTag) {
+                // Handle Twig closing tags within attributes ({% endif %}, etc.)
+                if (this.isClosingTag(trimmedLine)) {
+                    multiLineTagTwigDepth = Math.max(0, multiLineTagTwigDepth - 1);
+                }
+
+                formattedLines.push(indentChar.repeat(multiLineTagBaseIndent + 1 + multiLineTagTwigDepth) + trimmedLine);
+
+                // Handle Twig opening tags within attributes ({% if %}, etc.)
+                if (this.isOpeningTag(trimmedLine) && !this.isSelfClosingTag(trimmedLine) && !this.isSingleLineBlock(trimmedLine)) {
+                    multiLineTagTwigDepth++;
+                }
+
+                // Check if this line closes the tag (ends with > or ">)
+                if (/>\s*$/.test(trimmedLine)) {
+                    inMultiLineHtmlTag = false;
+                    multiLineTagTwigDepth = 0;
+                    // If it's a self-closing tag />, don't increase indent
+                    if (!trimmedLine.endsWith('/>')) {
+                        htmlIndentLevel++;
+                    }
+                }
+                continue;
+            }
+
+            // Detect start of a multi-line HTML opening tag (has < but no closing >)
+            if (/^<[a-zA-Z][a-zA-Z0-9\-._]*\s/.test(trimmedLine) && !/>/.test(trimmedLine) && !this.isHtmlClosingTag(trimmedLine)) {
+                inMultiLineHtmlTag = true;
+                multiLineTagBaseIndent = twigIndentLevel + htmlIndentLevel;
+                multiLineTagTwigDepth = 0;
+                formattedLines.push(indentChar.repeat(twigIndentLevel + htmlIndentLevel) + trimmedLine);
                 continue;
             }
 

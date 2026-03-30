@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.2.0] - 2026-03-30
+
+### Added
+- Multi-line HTML tag formatting — attributes on continuation lines are now properly indented
+- Twig blocks (`{% if %}` / `{% endif %}`) inside multi-line HTML attributes are correctly nested
+- Indentation support for multiline `{% set %}` blocks containing objects/arrays
+
+### Fixes
+- Fixed loops losing indentation due to multi-line HTML tags (`<a href="..."` across lines) causing indent drift
+- Fixed `[{` and similar multi-opener lines double-indenting in `<script>` blocks and `{% set %}` blocks
+
+
 ## [1.1.1] - 2026-03-30
 
 ### Fixes
