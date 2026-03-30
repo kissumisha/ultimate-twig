@@ -351,9 +351,12 @@ class TwigFormatter {
             /\{%-?\s*with\s+/,
             /\{%-?\s*verbatim\s*%\}/
         ];
-        // set should NOT indent unless multiline set (rare in Twig, but possible)
-        const isSingleLineSet = /^\{%-?\s*set\s+.+%\}$/.test(line);
-        if (isSingleLineSet) return false;
+        // Assignment form {% set var = ... %} is self-closing - no indent needed
+        const isSetAssignment = /\{%-?\s*set\s+\w+\s*=/.test(line);
+        if (isSetAssignment) return false;
+        // Capture block form {% set var %} requires {% endset %} - must indent
+        const isCaptureSet = /\{%-?\s*set\s+\w+\s*-?%\}/.test(line);
+        if (isCaptureSet) return true;
         return openingTags.some(pattern => pattern.test(line));
     }
 

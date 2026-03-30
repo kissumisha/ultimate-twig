@@ -8,12 +8,13 @@
 
 ### Fixes
 - Fixed incorrect indentation when HTML tags appear on the same line as Twig comments (e.g. `</div>{# comment #}`)
-- Fixed incorrect indentation  [issue #3](https://github.com/kissumisha/ultimate-twig/issues/3)
+- Fixed indentation and formatting issues for {% endblock %} and inline declarations [issue #3](https://github.com/kissumisha/ultimate-twig/issues/3)
+- Fixed incorrect indentation of `{% endset %}` causing misaligned subsequent code [issue #4](https://github.com/kissumisha/ultimate-twig/issues/4)
 
 ### Thank you
 - @SebNetbeans
 - @EmadAlmahdi
-
+- @felipep
 
 
 ## [1.0.1] - 2024-11-15
