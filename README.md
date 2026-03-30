@@ -84,6 +84,6 @@ Configure the extension through VSCode settings (`Ctrl+,` or `Cmd+,`) and search
 
 ## License
 
-Copyright © 2026 Gary Aranda Dickens @ TGO Systems (Tuetego Ltd)
+Copyright © 2025 Gary Aranda Dickens @ TGO Systems (Tuetego Ltd)
 
 This project is MIT licensed
