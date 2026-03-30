@@ -51,7 +51,16 @@ Completions can be toggled on/off individually in settings.
 
 ## Settings
 
-Configure the extension through VSCode settings (Ctrl+, or Cmd+,) and search for "Ultimate Twig":
+Configure the extension through VSCode settings (`Ctrl+,` or `Cmd+,`) and search for "Ultimate Twig":
+
+### Formatting
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `ultimateTwig.format.useTabs` | boolean | `false` | Use tabs instead of spaces for indentation |
+| `ultimateTwig.format.indentSize` | number (1–8) | `4` | Number of spaces per indentation level (when not using tabs) |
+
+### Autocompletion
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -64,6 +73,8 @@ Configure the extension through VSCode settings (Ctrl+, or Cmd+,) and search for
 
 ```json
 {
+  "ultimateTwig.format.useTabs": false,
+  "ultimateTwig.format.indentSize": 2,
   "ultimateTwig.twig.completion.enabled": true,
   "ultimateTwig.html.completion.enabled": true,
   "ultimateTwig.javascript.completion.enabled": true,
