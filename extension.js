@@ -579,6 +579,9 @@ function activate(context) {
     const formatter = vscode.languages.registerDocumentFormattingEditProvider('twig', {
         provideDocumentFormattingEdits(document) {
             const twigFormatter = new TwigFormatter();
+            const config = vscode.workspace.getConfiguration('ultimateTwig.format');
+            twigFormatter.useTabs = config.get('useTabs', false);
+            twigFormatter.indentSize = config.get('indentSize', 4);
             const text = document.getText();
             const formattedText = twigFormatter.format(text);
 
@@ -595,6 +598,9 @@ function activate(context) {
     const rangeFormatter = vscode.languages.registerDocumentRangeFormattingEditProvider('twig', {
         provideDocumentRangeFormattingEdits(document, range) {
             const twigFormatter = new TwigFormatter();
+            const config = vscode.workspace.getConfiguration('ultimateTwig.format');
+            twigFormatter.useTabs = config.get('useTabs', false);
+            twigFormatter.indentSize = config.get('indentSize', 4);
             const text = document.getText(range);
             const formattedText = twigFormatter.format(text);
 
