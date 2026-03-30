@@ -8,6 +8,12 @@
 
 ### Fixes
 - Fixed incorrect indentation when HTML tags appear on the same line as Twig comments (e.g. `</div>{# comment #}`)
+- Fixed incorrect indentation  [issue #3](https://github.com/kissumisha/ultimate-twig/issues/3)
+
+### Thank you
+- @SebNetbeans
+- @EmadAlmahdi
+
 
 
 ## [1.0.1] - 2024-11-15
