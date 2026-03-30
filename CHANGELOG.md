@@ -1,9 +1,20 @@
 # Change Log
 
+## [1.1.2] - 2026-03-30
+
+### Fixes
+- Fixed multiline `{% set %}` blocks containing objects/arrays losing all indentation [issue #9](https://github.com/kissumisha/ultimate-twig/issues/9)
+- Fixed indentation drift caused by multi-line HTML tags (`<a href="..."` across lines)
+- Fixed `[{` and similar multi-opener lines double-indenting in `<script>` and `{% set %}` blocks
+- Corrected typos in this CHANGELOG.md
+
+### Thank you
+- @EmadAlmahdi
+
 ## [1.1.1] - 2026-03-30
 
 ### Fixes
-- Updated README.md to unclude instructions about the features configuration.
+- Updated README.md to include instructions about the features configuration.
 
 
 ## [1.1.0] - 2026-03-30
@@ -31,8 +42,8 @@
 - Resolved an issue with incorrect indentation in nested Twig blocks
 - Added tags `{%- {%~` 
 - Fixed a bug causing IntelliSense to fail for certain Twig functions
-- Fix issue where inlince tags set wring indentation
-- Keep inlince Twig format inside tags and attritutes
+- Fix issue where inline tags set wrong indentation
+- Keep inline Twig format inside tags and attributes
 - Fixed wrong attribution in Lincese
 
 
